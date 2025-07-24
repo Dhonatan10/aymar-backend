@@ -1,5 +1,3 @@
-# main.py
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -19,17 +17,10 @@ openai.api_key = OPENAI_API_KEY
 
 app = FastAPI(title="Aymar Tech Backend com IA")
 
-# Configuração CORS - substitua os domínios conforme seu frontend
-origins = [
-    "https://aymar-tech.web.app",
-    "http://localhost:3000",
-    "https://aymar-tech.firebaseapp.com",
-    
-]
-
+# CORS liberado para todos os domínios (não recomendado para produção)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,       # Use ["*"] para liberar tudo (não recomendado em produção)
+    allow_origins=["*"],   # libera todos os domínios
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -113,6 +104,7 @@ async def assistente_educacional(req: AssistenteRequest):
             temperature=0.6,
         )
         resposta = response.choices[0].message.content.strip()
+        print(f"\n🔍 RESPOSTA DO OPENAI: {resposta}\n")  # <-- Adicione isso
         return {"resposta": resposta}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -137,7 +129,6 @@ async def criar_quiz(req: QuizRequest):
 
 @app.get("/cursos")
 async def listar_cursos():
-    # Lista mock de cursos - depois pode ligar a banco real
     cursos_mock = [
         {"id": 1, "titulo": "Técnicas de Ensino Modernas", "descricao": "Curso online para inovar suas aulas."},
         {"id": 2, "titulo": "Uso da IA na Educação", "descricao": "Aprenda a integrar inteligência artificial nas aulas."},
@@ -146,6 +137,6 @@ async def listar_cursos():
     ]
     return {"cursos": cursos_mock}
 
-# Rodar localmente:
-# pip install fastapi "uvicorn[standard]" openai python-dotenv
-# uvicorn main:app --reload
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)
