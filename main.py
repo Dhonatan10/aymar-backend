@@ -1,11 +1,14 @@
+# main.py
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 import openai
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 
-# Carrega as variáveis do arquivo .env
+# Carrega variáveis do .env
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -16,17 +19,21 @@ openai.api_key = OPENAI_API_KEY
 
 app = FastAPI(title="Aymar Tech Backend com IA")
 
-# CORS (opcional, ajuste conforme seu frontend)
+# Configuração CORS - substitua os domínios conforme seu frontend
+origins = [
+    "https://aymar-tech.web.app",
+    "http://localhost:3000",
+    "https://aymar-tech.firebaseapp.com",
+    
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,       # Use ["*"] para liberar tudo (não recomendado em produção)
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ... (o resto do seu código continua igual, os endpoints que já te passei)
-
-
 
 # --- Models (Schemas) ---
 
@@ -36,25 +43,20 @@ class AulaRequest(BaseModel):
     duracao: Optional[str] = "45 minutos"
     detalhes: Optional[str] = None
 
-
 class ProvaRequest(BaseModel):
     disciplina: str
     nivel: Optional[str] = "Médio"
     quantidade_questoes: Optional[int] = 10
 
-
 class AssistenteRequest(BaseModel):
     pergunta: str
     contexto: Optional[str] = None
-
 
 class QuizRequest(BaseModel):
     tema: str
     numero_perguntas: Optional[int] = 5
 
-
 # --- Endpoints ---
-
 
 @app.post("/aulas")
 async def criar_aula(req: AulaRequest):
@@ -78,7 +80,6 @@ async def criar_aula(req: AulaRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.post("/provas")
 async def gerar_prova(req: ProvaRequest):
     prompt = (
@@ -98,7 +99,6 @@ async def gerar_prova(req: ProvaRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.post("/assistente")
 async def assistente_educacional(req: AssistenteRequest):
     prompt = f"Responda a pergunta de forma clara e objetiva:\nPergunta: {req.pergunta}"
@@ -116,7 +116,6 @@ async def assistente_educacional(req: AssistenteRequest):
         return {"resposta": resposta}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.post("/quizzes")
 async def criar_quiz(req: QuizRequest):
@@ -136,10 +135,9 @@ async def criar_quiz(req: QuizRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.get("/cursos")
 async def listar_cursos():
-    # Por enquanto, lista mock de cursos. Depois pode puxar de banco real.
+    # Lista mock de cursos - depois pode ligar a banco real
     cursos_mock = [
         {"id": 1, "titulo": "Técnicas de Ensino Modernas", "descricao": "Curso online para inovar suas aulas."},
         {"id": 2, "titulo": "Uso da IA na Educação", "descricao": "Aprenda a integrar inteligência artificial nas aulas."},
@@ -148,9 +146,6 @@ async def listar_cursos():
     ]
     return {"cursos": cursos_mock}
 
-
-# --- Rodar localmente ---
-# Para rodar localmente:
-# pip install fastapi "uvicorn[standard]" openai
+# Rodar localmente:
+# pip install fastapi "uvicorn[standard]" openai python-dotenv
 # uvicorn main:app --reload
-
