@@ -18,16 +18,18 @@ openai.api_key = OPENAI_API_KEY
 app = FastAPI(title="Aymar Tech Backend com IA")
 
 # CORS liberado para todos os domínios (não recomendado para produção)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://aymar-tech.web.app",
-        "https://aymar-tech.firebaseapp.com"  # seu frontend no Firebase
+        "https://aymar-tech.firebaseapp.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # --- Models (Schemas) ---
 
@@ -140,6 +142,10 @@ async def listar_cursos():
     ]
     return {"cursos": cursos_mock}
 
+import os
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
+
