@@ -20,7 +20,10 @@ app = FastAPI(title="Aymar Tech Backend com IA")
 # CORS liberado para todos os domínios (não recomendado para produção)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # libera todos os domínios
+    allow_origins=[
+        "https://aymar-tech.web.app",
+        "https://aymar-tech.firebaseapp.com"  # seu frontend no Firebase
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
