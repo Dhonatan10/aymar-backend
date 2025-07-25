@@ -5,7 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 
-// Carrega variáveis do .env
+// Carrega variáveis do .env oi teste
 dotenv.config();
 
 const app = express();
