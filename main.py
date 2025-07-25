@@ -1,149 +1,109 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Optional
-import openai
-import os
-from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const { OpenAI } = require("openai");
 
-# Carrega variáveis do .env
-load_dotenv()
+dotenv.config();
+const app = express();
+app.use(cors()); // libera para todos os domínios
+app.use(express.json());
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise Exception("Variável OPENAI_API_KEY não encontrada!")
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-openai.api_key = OPENAI_API_KEY
+// --- Rotas ---
 
-app = FastAPI(title="Aymar Tech Backend com IA")
+app.post("/aulas", async (req, res) => {
+  const { tema, publico_alvo = "Alunos", duracao = "45 minutos", detalhes } = req.body;
 
-# CORS liberado para todos os domínios (não recomendado para produção)
+  let prompt = `Crie um plano de aula para o tema '${tema}', público-alvo '${publico_alvo}', com duração de ${duracao}. `;
+  if (detalhes) prompt += `Detalhes adicionais: ${detalhes}.`;
+  prompt += "\nPor favor, escreva o plano de forma clara e organizada.";
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,  # aqui tem que ser False
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 500,
+      temperature: 0.6,
+    });
 
+    const texto = completion.choices[0].message.content.trim();
+    res.json({ plano_de_aula: texto });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
+app.post("/provas", async (req, res) => {
+  const { disciplina, nivel = "Médio", quantidade_questoes = 10 } = req.body;
 
-# --- Models (Schemas) ---
+  const prompt = `Crie uma prova de ${quantidade_questoes} questões para a disciplina '${disciplina}' de nível ${nivel}. Inclua perguntas variadas e claras.`;
 
-class AulaRequest(BaseModel):
-    tema: str
-    publico_alvo: Optional[str] = "Alunos"
-    duracao: Optional[str] = "45 minutos"
-    detalhes: Optional[str] = None
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 500,
+      temperature: 0.6,
+    });
 
-class ProvaRequest(BaseModel):
-    disciplina: str
-    nivel: Optional[str] = "Médio"
-    quantidade_questoes: Optional[int] = 10
+    const texto = completion.choices[0].message.content.trim();
+    res.json({ prova_gerada: texto });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-class AssistenteRequest(BaseModel):
-    pergunta: str
-    contexto: Optional[str] = None
+app.post("/assistente", async (req, res) => {
+  const { pergunta, contexto } = req.body;
 
-class QuizRequest(BaseModel):
-    tema: str
-    numero_perguntas: Optional[int] = 5
+  let prompt = `Responda a pergunta de forma clara e objetiva:\nPergunta: ${pergunta}`;
+  if (contexto) prompt = `Contexto: ${contexto}\n` + prompt;
 
-# --- Endpoints ---
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 500,
+      temperature: 0.6,
+    });
 
-@app.post("/aulas")
-async def criar_aula(req: AulaRequest):
-    prompt = (
-        f"Crie um plano de aula para o tema '{req.tema}', "
-        f"público-alvo '{req.publico_alvo}', com duração de {req.duracao}. "
-    )
-    if req.detalhes:
-        prompt += f"Detalhes adicionais: {req.detalhes}."
-    prompt += "\nPor favor, escreva o plano de forma clara e organizada."
+    const resposta = completion.choices[0].message.content.trim();
+    res.json({ resposta });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=700,
-            temperature=0.7,
-        )
-        texto = response.choices[0].message.content.strip()
-        return {"plano_de_aula": texto}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+app.post("/quizzes", async (req, res) => {
+  const { tema, numero_perguntas = 5 } = req.body;
 
-@app.post("/provas")
-async def gerar_prova(req: ProvaRequest):
-    prompt = (
-        f"Crie uma prova de {req.quantidade_questoes} questões para a disciplina "
-        f"'{req.disciplina}' de nível {req.nivel}. "
-        "Inclua perguntas variadas e claras."
-    )
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=900,
-            temperature=0.7,
-        )
-        texto = response.choices[0].message.content.strip()
-        return {"prova_gerada": texto}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+  const prompt = `Crie um quiz educativo e divertido com ${numero_perguntas} perguntas sobre o tema '${tema}'. Forneça as perguntas com opções de múltipla escolha e destaque a resposta correta.`;
 
-@app.post("/assistente")
-async def assistente_educacional(req: AssistenteRequest):
-    prompt = f"Responda a pergunta de forma clara e objetiva:\nPergunta: {req.pergunta}"
-    if req.contexto:
-        prompt = f"Contexto: {req.contexto}\n" + prompt
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 500,
+      temperature: 0.6,
+    });
 
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=500,
-            temperature=0.6,
-        )
-        resposta = response.choices[0].message.content.strip()
-        print(f"\n🔍 RESPOSTA DO OPENAI: {resposta}\n")  # <-- Adicione isso
-        return {"resposta": resposta}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    const quiz_texto = completion.choices[0].message.content.trim();
+    res.json({ quiz: quiz_texto });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-@app.post("/quizzes")
-async def criar_quiz(req: QuizRequest):
-    prompt = (
-        f"Crie um quiz educativo e divertido com {req.numero_perguntas} perguntas sobre o tema '{req.tema}'. "
-        "Forneça as perguntas com opções de múltipla escolha e destaque a resposta correta."
-    )
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=900,
-            temperature=0.7,
-        )
-        quiz_texto = response.choices[0].message.content.strip()
-        return {"quiz": quiz_texto}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+app.get("/cursos", (req, res) => {
+  const cursos = [
+    { id: 1, titulo: "Técnicas de Ensino Modernas", descricao: "Curso online para inovar suas aulas." },
+    { id: 2, titulo: "Uso da IA na Educação", descricao: "Aprenda a integrar inteligência artificial nas aulas." },
+    { id: 3, titulo: "Psicologia Educacional Básica", descricao: "Compreenda o comportamento dos alunos." },
+    { id: 4, titulo: "Didática para Professores Iniciantes", descricao: "Fundamentos para planejar aulas eficazes." },
+  ];
+  res.json({ cursos });
+});
 
-@app.get("/cursos")
-async def listar_cursos():
-    cursos_mock = [
-        {"id": 1, "titulo": "Técnicas de Ensino Modernas", "descricao": "Curso online para inovar suas aulas."},
-        {"id": 2, "titulo": "Uso da IA na Educação", "descricao": "Aprenda a integrar inteligência artificial nas aulas."},
-        {"id": 3, "titulo": "Psicologia Educacional Básica", "descricao": "Compreenda o comportamento dos alunos."},
-        {"id": 4, "titulo": "Didática para Professores Iniciantes", "descricao": "Fundamentos para planejar aulas eficazes."},
-    ]
-    return {"cursos": cursos_mock}
-
-import os
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
-
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
