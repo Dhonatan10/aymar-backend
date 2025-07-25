@@ -1,4 +1,4 @@
-console.log("🚀 Servidor rodando - versão ES Modules com import");
+console.log(" Servidor rodando - versão ES Modules com import");
 
 import express from "express";
 import cors from "cors";
@@ -10,7 +10,18 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+// Configuração CORS para aceitar apenas do seu frontend
+const corsOptions = {
+  origin: [
+    "https://aymar-tech.web.app",
+    "https://www.aymarmultiloja.com.br",
+    "https://api.aymarmultiloja.com.br"
+  ],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const openai = new OpenAI({
@@ -94,27 +105,27 @@ app.post("/assistente", async (req, res) => {
   }
 });
 
-// Rota: Gerar quiz
+// Rota: Criar quiz
 app.post("/quizzes", async (req, res) => {
-  const { tema, numero_perguntas = 5 } = req.body;
+  const { tema, nivel = "Médio", numero_perguntas = 5 } = req.body;
 
   if (!tema) {
     return res.status(400).json({ error: "O campo 'tema' é obrigatório." });
   }
 
-  const prompt = `Crie um quiz com ${numero_perguntas} perguntas sobre '${tema}' com múltipla escolha e destaque a correta.`;
+  const prompt = `Crie um quiz divertido e desafiador com ${numero_perguntas} perguntas de múltipla escolha sobre '${tema}', nível ${nivel}. Informe as perguntas com as opções e destaque a correta explicitamente.`;
 
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 500,
-      temperature: 0.6,
+      max_tokens: 700,
+      temperature: 0.8,
     });
 
     res.json({ quiz: completion.choices[0].message.content.trim() });
-  } catch (error) {
-    console.error("Erro ao gerar quiz:", error);
+  } catch (err) {
+    console.error("Erro ao gerar quiz:", err);
     res.status(500).json({ error: "Erro interno ao gerar o quiz." });
   }
 });
