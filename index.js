@@ -1,4 +1,6 @@
 console.log(" Servidor rodando - versão ES Modules com import");
+console.log("🚀 Teste visível de push no index.js");
+
 
 import express from "express";
 import cors from "cors";
