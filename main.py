@@ -21,14 +21,12 @@ app = FastAPI(title="Aymar Tech Backend com IA")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://aymar-tech.web.app",
-        "https://aymar-tech.firebaseapp.com",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,  # aqui tem que ser False
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 # --- Models (Schemas) ---
