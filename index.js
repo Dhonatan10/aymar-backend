@@ -9,10 +9,10 @@ import OpenAI from "openai";
 dotenv.config();
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// Inicializa OpenAI com a chave da variável de ambiente
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -20,6 +20,11 @@ const openai = new OpenAI({
 // Rota: Gerar plano de aula
 app.post("/aulas", async (req, res) => {
   const { tema, publico_alvo = "Alunos", duracao = "45 minutos", detalhes } = req.body;
+
+  if (!tema) {
+    return res.status(400).json({ error: "O campo 'tema' é obrigatório." });
+  }
+
   let prompt = `Crie um plano de aula para o tema '${tema}', público-alvo '${publico_alvo}', com duração de ${duracao}.`;
   if (detalhes) prompt += ` Detalhes adicionais: ${detalhes}.`;
 
@@ -30,15 +35,22 @@ app.post("/aulas", async (req, res) => {
       max_tokens: 500,
       temperature: 0.6,
     });
+
     res.json({ plano_de_aula: completion.choices[0].message.content.trim() });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error("Erro ao gerar plano de aula:", error);
+    res.status(500).json({ error: "Erro interno ao gerar o plano de aula." });
   }
 });
 
 // Rota: Gerar prova
 app.post("/provas", async (req, res) => {
   const { disciplina, nivel = "Médio", quantidade_questoes = 10 } = req.body;
+
+  if (!disciplina) {
+    return res.status(400).json({ error: "O campo 'disciplina' é obrigatório." });
+  }
+
   const prompt = `Crie uma prova de ${quantidade_questoes} questões para a disciplina '${disciplina}' de nível ${nivel}.`;
 
   try {
@@ -48,15 +60,22 @@ app.post("/provas", async (req, res) => {
       max_tokens: 500,
       temperature: 0.6,
     });
+
     res.json({ prova_gerada: completion.choices[0].message.content.trim() });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error("Erro ao gerar prova:", error);
+    res.status(500).json({ error: "Erro interno ao gerar a prova." });
   }
 });
 
 // Rota: Assistente IA
 app.post("/assistente", async (req, res) => {
   const { pergunta, contexto } = req.body;
+
+  if (!pergunta) {
+    return res.status(400).json({ error: "O campo 'pergunta' é obrigatório." });
+  }
+
   let prompt = `Responda a pergunta de forma clara e objetiva:\nPergunta: ${pergunta}`;
   if (contexto) prompt = `Contexto: ${contexto}\n` + prompt;
 
@@ -67,15 +86,22 @@ app.post("/assistente", async (req, res) => {
       max_tokens: 500,
       temperature: 0.6,
     });
+
     res.json({ resposta: completion.choices[0].message.content.trim() });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error("Erro no assistente IA:", error);
+    res.status(500).json({ error: "Erro interno ao processar a pergunta." });
   }
 });
 
 // Rota: Gerar quiz
 app.post("/quizzes", async (req, res) => {
   const { tema, numero_perguntas = 5 } = req.body;
+
+  if (!tema) {
+    return res.status(400).json({ error: "O campo 'tema' é obrigatório." });
+  }
+
   const prompt = `Crie um quiz com ${numero_perguntas} perguntas sobre '${tema}' com múltipla escolha e destaque a correta.`;
 
   try {
@@ -85,9 +111,11 @@ app.post("/quizzes", async (req, res) => {
       max_tokens: 500,
       temperature: 0.6,
     });
+
     res.json({ quiz: completion.choices[0].message.content.trim() });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error("Erro ao gerar quiz:", error);
+    res.status(500).json({ error: "Erro interno ao gerar o quiz." });
   }
 });
 
@@ -98,12 +126,11 @@ app.get("/cursos", (req, res) => {
       { id: 1, titulo: "Técnicas de Ensino Modernas", descricao: "Curso online para inovar suas aulas." },
       { id: 2, titulo: "Uso da IA na Educação", descricao: "Aprenda a integrar inteligência artificial nas aulas." },
       { id: 3, titulo: "Psicologia Educacional Básica", descricao: "Compreenda o comportamento dos alunos." },
-      { id: 4, titulo: "Didática para Professores Iniciantes", descricao: "Fundamentos para planejar aulas eficazes." }
-    ]
+      { id: 4, titulo: "Didática para Professores Iniciantes", descricao: "Fundamentos para planejar aulas eficazes." },
+    ],
   });
 });
 
-// Inicia o servidor
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
